@@ -1,17 +1,16 @@
-local rs = game:GetService("ReplicatedStorage")
+local events = "=== RemoteEvents ===\n"
+local functions = "\n=== RemoteFunctions ===\n"
 
-local output = ""
-
-for _, obj in ipairs(rs:GetDescendants()) do
-	local success, path = pcall(function()
-		return obj:GetFullName()
-	end)
+for _, obj in ipairs(game:GetDescendants()) do
+	if obj:IsA("RemoteEvent") then
+		events = events .. obj:GetFullName().."\n"
+	end
 	
-	if success then
-		output = output .. path .. "\n"
+	if obj:IsA("RemoteFunction") then
+		functions = functions .. obj:GetFullName().."\n"
 	end
 end
 
-setclipboard(output)
+setclipboard(events..functions)
 
-print("Copiado al clipboard:", #rs:GetDescendants(), "objetos")
+print("🔥 Remotes organizados copiados")
