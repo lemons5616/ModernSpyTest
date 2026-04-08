@@ -41,11 +41,11 @@ ScrollingFrame.Parent = Frame
 local UIListLayout = Instance.new("UIListLayout", ScrollingFrame)
 UIListLayout.Padding = UDim.new(0,4)
 
--- Bring system
+-- TP system
 local currentTarget = nil
 local connection = nil
 
-local function stopBring()
+local function stopTP()
 	if connection then
 		connection:Disconnect()
 		connection = nil
@@ -53,9 +53,8 @@ local function stopBring()
 	currentTarget = nil
 end
 
-local function bringPlayer(targetPlayer)
-	stopBring()
-
+local function tpToPlayer(targetPlayer)
+	stopTP()
 	currentTarget = targetPlayer
 
 	connection = RunService.RenderStepped:Connect(function()
@@ -68,18 +67,18 @@ local function bringPlayer(targetPlayer)
 
 		if not myHRP or not targetHRP or not targetHum then return end
 
-		-- Si muere, se suelta
+		-- Si muere, parar
 		if targetHum.Health <= 0 then
-			stopBring()
+			stopTP()
 			return
 		end
 
-		-- Lo pega literalmente a ti
-		targetHRP.CFrame = myHRP.CFrame
+		-- Te pega a él (ligeramente arriba para evitar bugs)
+		myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 0)
 	end)
 end
 
--- Crear botón jugador
+-- Crear botón
 local function createButton(player)
 	if player == LocalPlayer then return end
 
@@ -96,7 +95,7 @@ local function createButton(player)
 	Corner.CornerRadius = UDim.new(0,6)
 
 	Button.MouseButton1Click:Connect(function()
-		bringPlayer(player)
+		tpToPlayer(player)
 	end)
 end
 
