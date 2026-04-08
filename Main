@@ -1,16 +1,120 @@
-local events = "=== RemoteEvents ===\n"
-local functions = "\n=== RemoteFunctions ===\n"
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-for _, obj in ipairs(game:GetDescendants()) do
-	if obj:IsA("RemoteEvent") then
-		events = events .. obj:GetFullName().."\n"
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 180, 0, 220)
+Frame.Position = UDim2.new(0, 20, 0, 100)
+Frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local UIStroke = Instance.new("UIStroke", Frame)
+UIStroke.Thickness = 1
+UIStroke.Color = Color3.fromRGB(80,80,80)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,0,0,25)
+Title.BackgroundTransparency = 1
+Title.Text = "Players"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextSize = 14
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Frame
+
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(1, -10, 1, -30)
+ScrollingFrame.Position = UDim2.new(0,5,0,25)
+ScrollingFrame.CanvasSize = UDim2.new(0,0,0,0)
+ScrollingFrame.ScrollBarThickness = 4
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.Parent = Frame
+
+local UIListLayout = Instance.new("UIListLayout", ScrollingFrame)
+UIListLayout.Padding = UDim.new(0,4)
+
+-- Bring system
+local currentTarget = nil
+local connection = nil
+
+local function stopBring()
+	if connection then
+		connection:Disconnect()
+		connection = nil
 	end
-	
-	if obj:IsA("RemoteFunction") then
-		functions = functions .. obj:GetFullName().."\n"
-	end
+	currentTarget = nil
 end
 
-setclipboard(events..functions)
+local function bringPlayer(targetPlayer)
+	stopBring()
 
-print("🔥 Remotes organizados copiados")
+	currentTarget = targetPlayer
+
+	connection = RunService.RenderStepped:Connect(function()
+		if not currentTarget or not currentTarget.Character then return end
+		if not LocalPlayer.Character then return end
+
+		local myHRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		local targetHRP = currentTarget.Character:FindFirstChild("HumanoidRootPart")
+		local targetHum = currentTarget.Character:FindFirstChildOfClass("Humanoid")
+
+		if not myHRP or not targetHRP or not targetHum then return end
+
+		-- Si muere, se suelta
+		if targetHum.Health <= 0 then
+			stopBring()
+			return
+		end
+
+		-- Lo pega literalmente a ti
+		targetHRP.CFrame = myHRP.CFrame
+	end)
+end
+
+-- Crear botón jugador
+local function createButton(player)
+	if player == LocalPlayer then return end
+
+	local Button = Instance.new("TextButton")
+	Button.Size = UDim2.new(1,0,0,25)
+	Button.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	Button.TextColor3 = Color3.new(1,1,1)
+	Button.Text = player.Name
+	Button.TextSize = 13
+	Button.Font = Enum.Font.Gotham
+	Button.Parent = ScrollingFrame
+
+	local Corner = Instance.new("UICorner", Button)
+	Corner.CornerRadius = UDim.new(0,6)
+
+	Button.MouseButton1Click:Connect(function()
+		bringPlayer(player)
+	end)
+end
+
+-- Actualizar lista cada 1s
+task.spawn(function()
+	while true do
+		for _,v in pairs(ScrollingFrame:GetChildren()) do
+			if v:IsA("TextButton") then
+				v:Destroy()
+			end
+		end
+
+		for _,player in pairs(Players:GetPlayers()) do
+			createButton(player)
+		end
+
+		task.wait(1)
+
+		ScrollingFrame.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
+	end
+end)
